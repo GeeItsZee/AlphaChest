@@ -1,6 +1,6 @@
 name: AlphaChest
 main: com.yahoo.tracebachi.AlphaChest.AlphaChestPlugin
-version: 1.0
+version: 1.1
 author: Trace Bachi (tracebachi@yahoo.com, BigBossZee)
 description: Plugin that allows you to have virtual private chests.
 
@@ -11,9 +11,6 @@ commands:
     clearchest:
         description: Clears the contents of your AlphaChest.
         usage: "/<command> - Clears your private chest.\n/<command> [player] - Clears someone else's chest."
-    savechests:
-        description: Saves all AlphaChests to disk.
-        permission: alphachest.save
     workbench:
         aliases: [craft, craftbox, craftingbox]
         description: Opens a virtual workbench.
@@ -29,13 +26,6 @@ permissions:
         description: Gives access to the virtual chest.
     alphachest.workbench:
         description: Gives access to the virtual workbench.
-
-    alphachest.keepOnDeath:
-        description: Players with this permission keep the contents of their virtual chest on death.
-    alphachest.dropOnDeath:
-        description: Players with this permission drop the contents of their virtual chest on death.
-    alphachest.clearOnDeath:
-        description: Players with this permission lose the contents of their virtual chest on death.
 
     alphachest.admin:
         description: Allows to open and clear someone else's chest.

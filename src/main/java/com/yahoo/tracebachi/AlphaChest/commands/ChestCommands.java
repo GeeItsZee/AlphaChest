@@ -1,24 +1,32 @@
 package com.yahoo.tracebachi.AlphaChest.commands;
 
-import com.yahoo.tracebachi.AlphaChest.VirtualChestManager;
+import com.yahoo.tracebachi.AlphaChest.InventoryIO;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.logging.Logger;
 
 public class ChestCommands implements CommandExecutor
 {
     private static final String SUCCESS = ChatColor.translateAlternateColorCodes('&', "&8[&aAlphaChest&8]&a ");
     private static final String ERROR = ChatColor.translateAlternateColorCodes('&', "&8[&aAlphaChest&8]&c ");
 
-    private final VirtualChestManager chestManager;
+    private final File chestFolder;
+    private final Logger logger;
 
-    public ChestCommands(VirtualChestManager chestManager)
+    public ChestCommands(File chestFolder, Logger logger)
     {
-        this.chestManager = chestManager;
+        this.chestFolder = chestFolder;
+        this.logger = logger;
     }
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
@@ -32,10 +40,6 @@ public class ChestCommands implements CommandExecutor
         {
             return performClearChestCommand(sender, args);
         }
-        else if(name.equalsIgnoreCase("savechests"))
-        {
-            return performSaveChestsCommand(sender);
-        }
         return false;
     }
 
@@ -48,6 +52,7 @@ public class ChestCommands implements CommandExecutor
         }
 
         Player player = (Player) sender;
+        String playerName = player.getName();
         GameMode mode = player.getGameMode();
 
         if(mode == GameMode.CREATIVE && !player.hasPermission("alphachest.chest.creativeMode"))
@@ -64,13 +69,16 @@ public class ChestCommands implements CommandExecutor
                 return true;
             }
 
-            Inventory chest = chestManager.getChest(player.getName());
+            Inventory chest = loadChest(playerName);
             if(chest == null)
             {
-                chest = chestManager.createChest(player.getName());
+                logger.info("Failed to load chest for " + playerName);
+                player.sendMessage(ERROR + "Failed to load chest for " + playerName);
             }
-
-            player.openInventory(chest);
+            else
+            {
+                player.openInventory(chest);
+            }
         }
 
         if(args.length == 1)
@@ -81,15 +89,15 @@ public class ChestCommands implements CommandExecutor
                 return true;
             }
 
-            Inventory chest = chestManager.getChest(args[0].toLowerCase());
-
-            if(chest != null)
+            Inventory chest = loadChest(args[0]);
+            if(chest == null)
             {
-                player.openInventory(chest);
+                logger.info("Failed to load chest for " + args[0]);
+                player.sendMessage(ERROR + "Failed to load chest for " + args[0]);
             }
             else
             {
-                player.sendMessage(ERROR + "That player does not have a chest.");
+                player.openInventory(chest);
             }
         }
 
@@ -106,7 +114,7 @@ public class ChestCommands implements CommandExecutor
                 return true;
             }
 
-            chestManager.removeChest(sender.getName().toLowerCase());
+            removeChest(sender.getName().toLowerCase());
             sender.sendMessage(SUCCESS + "Successfully cleared your chest. It's not coming back.");
             return true;
         }
@@ -119,7 +127,7 @@ public class ChestCommands implements CommandExecutor
                 return true;
             }
 
-            chestManager.removeChest(args[0].toLowerCase());
+            removeChest(args[0].toLowerCase());
             sender.sendMessage(SUCCESS + "Successfully cleared " + args[0] + "'s chest.");
             return true;
         }
@@ -127,16 +135,38 @@ public class ChestCommands implements CommandExecutor
         return false;
     }
 
-    private boolean performSaveChestsCommand(CommandSender sender)
+    private Inventory loadChest(String playerName)
     {
-        if(sender.hasPermission("alphachest.save"))
-        {
-            chestManager.saveAll();
-            sender.sendMessage(SUCCESS + "Saved all chests.");
-            return true;
-        }
+        playerName = playerName.toLowerCase();
+        File chestFile = new File(chestFolder, playerName + ".chest.yml");
 
-        sender.sendMessage(ERROR + "You are not allowed to use this command.");
-        return true;
+        if(chestFile.exists())
+        {
+            try
+            {
+                return InventoryIO.loadFromYaml(chestFile, playerName);
+            }
+            catch(IOException | InvalidConfigurationException e)
+            {
+                logger.info("Failed to load chest for " + playerName);
+                e.printStackTrace();
+                return null;
+            }
+        }
+        else
+        {
+            return Bukkit.getServer().createInventory(null, 54, "AlphaChest - " + playerName);
+        }
+    }
+
+    private void removeChest(String playerName)
+    {
+        playerName = playerName.toLowerCase();
+        File chestFile = new File(chestFolder, playerName + ".chest.yml");
+
+        if(chestFile.exists())
+        {
+            chestFile.delete();
+        }
     }
 }
